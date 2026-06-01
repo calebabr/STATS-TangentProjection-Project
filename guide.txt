@@ -1,0 +1,272 @@
+Guide for KTH-TIPS2
+============================================
+
+The main goal is to compare different SPD geometries and dimension reduction methods.
+
+Covariance matrices have already been extracted from images.
+Each image is represented by one SPD matrix.
+
+
+Data format
+--------------------
+
+The KTH-TIPS2 covariance file will usually be loaded as:
+
+    import numpy as np
+    import pandas as pd
+
+    data = np.load("covariance_matrices.npz", allow_pickle=True)
+    X = data["X"]       # shape: (n, p, p)
+    y = data["y"]       # material labels
+
+You can also load the metadata file:
+
+    meta = pd.read_csv("metadata.csv")
+
+The metadata file contains useful information such as:
+
+    material
+    sample
+    scale
+    image_label
+    relative_path
+
+This lets you work with smaller subsets of the data while testing your code.
+
+
+Recommended starting subsets for KTH-TIPS2
+------------------------------------------
+
+The full dataset may be too large when computing pairwise manifold distances.
+Start small first. Once your code works, increase the data size.
+
+Smallest debugging subset:
+
+    idx = (
+        (meta["sample"] == "sample_a")
+        &
+        (meta["scale"].isin([2, 6, 10]))
+    )
+
+    X_small = X[idx]
+    y_small = y[idx]
+    meta_small = meta[idx]
+
+This uses only:
+
+    sample_a
+    scales 2, 6, and 10
+
+This should be a good subset for checking that your code works.
+
+Next larger subset:
+
+    idx = meta["sample"] == "sample_a"
+
+    X_sample_a = X[idx]
+    y_sample_a = y[idx]
+    meta_sample_a = meta[idx]
+
+This uses all images from sample_a only.
+
+Larger subsets:
+
+    sample_a + sample_b
+    sample_a + sample_b + sample_c
+    all four samples
+
+For example:
+
+    idx = meta["sample"].isin(["sample_a", "sample_b"])
+
+    X_ab = X[idx]
+    y_ab = y[idx]
+    meta_ab = meta[idx]
+
+
+Matrix stacking convention
+--------------------------
+
+The covariance matrix file stores matrices as:
+
+    X.shape = (n, p, p)
+
+Some functions in metric_functions.py expect matrices stacked as:
+
+    X_ppn.shape = (p, p, n)
+
+Use:
+
+    from metric_functions_student_commented import stack_npp_to_ppn
+
+    X_ppn = stack_npp_to_ppn(X)
+
+
+Task 1: Compare manifold UMAP to tangent-space UMAP
+---------------------------------------------------
+
+In this task, you will compare two ways of applying UMAP.
+
+Manifold UMAP:
+
+    First compute a pairwise distance matrix using one of the SPD metrics:
+
+        compute_pairwise_distance_matrix(X, metric="bw")
+        compute_pairwise_distance_matrix(X, metric="ai")
+        compute_pairwise_distance_matrix(X, metric="loge")
+
+    Then run UMAP using the precomputed distance matrix:
+
+        umap.UMAP(metric="precomputed").fit_transform(D)
+
+Tangent-space UMAP:
+
+    First compute the SPD mean and project the matrices to tangent space:
+
+        X_ppn = stack_npp_to_ppn(X)
+        M, info = compute_mean_projection(X_ppn, metric="bw")
+        Z = project_stack_to_tangent_features(X, M, metric="bw")
+
+    You can also repeat this for:
+
+        metric="ai"
+        metric="loge"
+
+    Then run UMAP on the tangent feature matrix:
+
+        umap.UMAP(metric="euclidean").fit_transform(Z)
+
+Important note:
+
+    UMAP does not automatically standardize your features.
+    If you want standardized tangent features, you must use StandardScaler yourself.
+
+For comparison, you may compute:
+
+    neighborhood overlap
+    trustworthiness
+    Spearman distance correlation
+    UMAP plots colored by material label
+
+
+Task 2: Compare standardization vs non-standardization
+------------------------------------------------------
+
+In this task, you will study whether standardizing tangent features changes the results.
+
+Start with tangent-space features:
+
+    X_ppn = stack_npp_to_ppn(X)
+    M, info = compute_mean_projection(X_ppn, metric="bw")
+    Z = project_stack_to_tangent_features(X, M, metric="bw")
+
+Raw tangent features:
+
+    Z_raw = Z
+
+Standardized tangent features:
+
+    from sklearn.preprocessing import StandardScaler
+
+    scaler = StandardScaler()
+    Z_std = scaler.fit_transform(Z)
+
+Then compare:
+
+    feature standard deviations using Z_raw.std(axis=0)
+    boxplots of feature standard deviations
+    PCA cumulative variance explained for Z_raw
+    PCA cumulative variance explained for Z_std
+    classification accuracy using Z_raw versus Z_std
+
+
+Task 3: Downstream classification with PCA or UMAP
+--------------------------------------------------
+
+In this task, you will compare classification using:
+
+    full tangent features
+    PCA-reduced tangent features
+    UMAP-reduced tangent features
+
+You should try classification both without standardization and with standardization.
+
+For each train/test split:
+
+    1. Split the SPD matrices into training and test sets.
+    2. Compute the SPD mean using only the training matrices.
+    3. Project both training and test matrices using the training mean.
+    4. Fit any scaler, PCA, or UMAP only on the training data.
+    5. Apply the fitted scaler, PCA, or UMAP to the test data.
+    6. Fit the classifier on the training data and evaluate it on the test data.
+
+Example tangent projection inside one train/test split:
+
+    X_train_ppn = stack_npp_to_ppn(X_train)
+
+    M, info = compute_mean_projection(X_train_ppn, metric="bw")
+
+    Z_train = project_stack_to_tangent_features(X_train, M, metric="bw")
+    Z_test  = project_stack_to_tangent_features(X_test,  M, metric="bw")
+
+Pipeline A: Full tangent features -> classifier
+
+Pipeline B: PCA-reduced tangent features -> classifier
+
+Pipeline C: UMAP-reduced tangent features -> classifier
+
+Possible classifiers:
+
+    sklearn.neighbors.KNeighborsClassifier
+    sklearn.linear_model.LogisticRegression
+    sklearn.svm.SVC
+
+Important standardization rule:
+
+    If you use StandardScaler during cross-validation, fit it only on the training fold.
+    Then use that same fitted scaler to transform both the training fold and the test fold.
+
+For example:
+
+    scaler = StandardScaler()
+
+    Z_train_std = scaler.fit_transform(Z_train)
+    Z_test_std  = scaler.transform(Z_test)
+
+Do not use fit_transform on the test set.
+The test set must be transformed using the mean and standard deviation learned from the training set.
+
+
+Important cross-validation rule
+-------------------------------
+
+Do not compute the SPD mean, scaler, PCA, or UMAP using the full dataset before cross-validation.
+
+For each fold:
+
+    SPD mean: fit on training matrices only
+    StandardScaler: fit on training tangent features only
+    PCA: fit on training tangent features only
+    UMAP: fit on training tangent features only
+    Classifier: fit on training data only
+
+Then evaluate on the test fold.
+
+This avoids data leakage.
+
+
+Final advice
+------------
+
+Start with a small subset first.
+Make sure the code runs.
+Then increase the number of samples.
+
+A good workflow is:
+
+    1. sample_a with scales 2, 6, 10
+    2. all of sample_a
+    3. sample_a + sample_b
+    4. larger subsets only after the code works
+
+Pairwise distance matrices can become slow for large n because they require many matrix-to-matrix distance calculations.

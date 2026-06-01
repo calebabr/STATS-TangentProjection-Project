@@ -1,0 +1,209 @@
+KTH-TIPS2 Covariance Dataset Description
+========================================
+
+Overview
+--------
+
+The original KTH-TIPS2-b dataset contains images of 11 different material classes
+collected under varying scales, poses, illumination conditions, and physical samples.
+
+Material classes:
+
+    aluminium_foil
+    brown_bread
+    corduroy
+    cork
+    cotton
+    cracker
+    lettuce_leaf
+    linen
+    white_bread
+    wood
+    wool
+
+The full extracted dataset contains:
+
+    11 material classes
+    4 physical samples per class
+    9 scales per sample
+    12 pose/illumination conditions per scale
+
+    Total images / covariance matrices: 4752
+
+Each image was converted into a covariance descriptor and stored as a Symmetric
+Positive Definite (SPD) matrix.
+
+Matrix Dimensions
+-----------------
+
+Each image is represented by a:
+
+    22 x 22 covariance matrix
+
+The matrices are stored in:
+
+    X.shape = (n, 22, 22)
+
+where n is the number of images included in the analysis.
+
+Examples:
+
+    All data:
+        n = 4752
+
+    Sample a only:
+        n = 1188
+
+Feature Channels Used to Build the Covariance Matrices
+------------------------------------------------------
+
+For every pixel in an image, the following 22 features were computed:
+
+    x
+    y
+    R
+    G
+    B
+    gray
+    sobel_x
+    sobel_y
+    gradient_magnitude
+    laplacian
+    12 Gabor texture responses
+
+The Gabor filters used:
+
+    4 orientations:
+        0°
+        45°
+        90°
+        135°
+
+    3 frequencies:
+        coarse
+        medium
+        fine
+
+This produces:
+
+    4 x 3 = 12 Gabor response channels
+
+The covariance of these 22 channels was then computed for each image,
+producing a 22 x 22 SPD covariance matrix.
+
+Tangent-Space Feature Dimension
+-------------------------------
+
+After projecting a 22 x 22 SPD matrix onto a tangent space and
+half-vectorizing the symmetric tangent matrix, each image becomes:
+
+    22(22+1)/2 = 253 features
+
+Therefore:
+
+    SPD matrix:
+        22 x 22
+
+    Tangent feature vector:
+        253 features
+
+Files Provided
+--------------
+
+covariance_matrices.npz
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Main dataset file.
+
+Example:
+
+    data = np.load("covariance_matrices.npz", allow_pickle=True)
+
+    X = data["X"]
+    y = data["y"]
+
+Contents:
+
+    X
+        covariance matrices
+        shape = (n, 22, 22)
+
+    y
+        material labels
+
+metadata.csv
+~~~~~~~~~~~~
+
+Additional information describing each image.
+
+Each row corresponds to one covariance matrix.
+
+Columns:
+
+    material
+        Material class label
+        Example:
+            wood
+            wool
+            cork
+
+    sample
+        Physical material sample
+        Example:
+            sample_a
+            sample_b
+            sample_c
+            sample_d
+
+        These correspond to different physical instances of the same material.
+
+    scale
+        Image scale level
+        Values:
+            2 through 10
+
+    image_label
+        Pose / illumination condition
+        Values:
+            1 through 12
+
+    relative_path
+        Relative path to the original image
+
+        Example:
+            aluminium_foil/sample_a/15a-scale_10_im_11_col.png
+
+        This can be used to locate and visualize the original image associated
+        with a covariance matrix.
+
+Recommended Starting Subsets
+----------------------------
+
+Before running experiments on the full dataset, it is recommended to begin
+with a smaller subset.
+
+Very small debugging subset:
+
+    idx = (
+        (meta["sample"] == "sample_a")
+        &
+        (meta["scale"].isin([2, 6, 10]))
+    )
+
+Approximately:
+
+    396 matrices
+
+Good first analysis subset:
+
+    idx = meta["sample"] == "sample_a"
+
+Approximately:
+
+    1188 matrices
+
+After verifying that the workflow works correctly, larger subsets can be
+explored using additional physical samples.
+
+
+** I'm not sure how long computation times will take, so you may need to create even smaller subsets and test with those **
