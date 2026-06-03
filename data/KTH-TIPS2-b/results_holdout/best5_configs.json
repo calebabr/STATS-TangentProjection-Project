@@ -1,0 +1,72 @@
+[
+  {
+    "rank": 1,
+    "geometry": "AI",
+    "pipeline": "A-Full",
+    "q": null,
+    "standardize": true,
+    "classifier": "lr",
+    "cv_accuracy": 0.9779,
+    "cv_acc_std": 0.0161,
+    "ho_accuracy": 1.0,
+    "ho_precision": 1.0,
+    "ho_recall": 1.0,
+    "ho_auc": 1.0
+  },
+  {
+    "rank": 2,
+    "geometry": "BW",
+    "pipeline": "A-Full",
+    "q": null,
+    "standardize": true,
+    "classifier": "lr",
+    "cv_accuracy": 0.9653,
+    "cv_acc_std": 0.0208,
+    "ho_accuracy": 1.0,
+    "ho_precision": 1.0,
+    "ho_recall": 1.0,
+    "ho_auc": 1.0
+  },
+  {
+    "rank": 3,
+    "geometry": "LOGE",
+    "pipeline": "B-PCA",
+    "q": 20,
+    "standardize": false,
+    "classifier": "svm",
+    "cv_accuracy": 0.9715,
+    "cv_acc_std": 0.0155,
+    "ho_accuracy": 1.0,
+    "ho_precision": 1.0,
+    "ho_recall": 1.0,
+    "ho_auc": 1.0
+  },
+  {
+    "rank": 4,
+    "geometry": "LOGE",
+    "pipeline": "B-PCA",
+    "q": 20,
+    "standardize": true,
+    "classifier": "svm",
+    "cv_accuracy": 0.9779,
+    "cv_acc_std": 0.016,
+    "ho_accuracy": 1.0,
+    "ho_precision": 1.0,
+    "ho_recall": 1.0,
+    "ho_auc": 1.0
+  },
+  {
+    "rank": 5,
+    "geometry": "LOGE",
+    "pipeline": "A-Full",
+    "q": null,
+    "standardize": false,
+    "classifier": "svm",
+    "cv_accuracy": 0.9937,
+    "cv_acc_std": 0.0077,
+    "ho_accuracy": 1.0,
+    "ho_precision": 1.0,
+    "ho_recall": 1.0,
+    "ho_auc": 1.0
+  }
+]
